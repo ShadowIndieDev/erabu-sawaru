@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="さわる2択">
+<meta name="theme-color" content="#e4e9df">
+<meta name="description" content="左右どちらかの半分に触れた瞬間に選べる、2択の意思表出アプリ。">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; connect-src 'none'">
+<title>えらぶの窓 さわる2択</title>
+<style>/*@STYLE@*/</style>
+</head>
+<body>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<div id="app" hidden>
+  <header class="band" aria-label="支援者用の操作">
+    <div class="band-group">
+      <button id="redo" class="band-button strong" type="button">えらびなおす</button>
+      <button id="repeat" class="band-button" type="button">もういちど読む</button>
+      <button id="pause" class="band-button" type="button" aria-pressed="false">休む</button>
+    </div>
+    <div class="band-group nav">
+      <button id="prev" class="band-button arrow" type="button" aria-label="前の質問">‹</button>
+      <div class="nav-text"><span id="set-name"></span><span id="question-count"></span></div>
+      <button id="next" class="band-button arrow" type="button" aria-label="次の質問">›</button>
+    </div>
+    <div class="band-group">
+      <button id="swap" class="band-button" type="button">左右を入れ替え</button>
+      <button id="settings-hold" class="band-button hold" type="button" aria-label="設定（長押しで開く）"><span class="hold-fill" aria-hidden="true"></span><span class="hold-text">設定<small>長押し</small></span></button>
+    </div>
+  </header>
+  <main id="stage" class="stage" aria-label="左右どちらかに触れて選ぶ">
+    <h1 id="question" class="question"></h1>
+    <div class="halves">
+      <section class="half" id="half-left" data-side="left"><div class="card"><div class="picture"></div><div class="label"></div></div></section>
+      <div class="dead-zone" aria-hidden="true"></div>
+      <section class="half" id="half-right" data-side="right"><div class="card"><div class="picture"></div><div class="label"></div></div></section>
+    </div>
+    <div id="paused-cover" class="paused-cover" hidden><p>おやすみ中</p><small>上の「再開する」で もどります</small></div>
+  </main>
+  <p id="notice" class="notice" role="status" aria-live="polite"></p>
+</div>
+
+<div id="sheet-settings" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="sheet-head"><h2 id="settings-title">設定・使い方</h2><button id="close-settings" class="primary" type="button">この設定で使う</button></div>
+  <div class="sheet-body">
+    <section class="block">
+      <h3>セット</h3>
+      <label class="row">使うセット<select id="set-select"></select></label>
+      <label class="row">はじめる質問<select id="question-select"></select></label>
+      <div class="buttons">
+        <button id="edit-set" type="button">このセットを編集</button>
+        <button id="new-set" type="button">＋ 新しいセット</button>
+        <label class="file-button">セットを読み込む<input id="import-file" type="file" accept="application/json,.json"></label>
+      </div>
+      <p id="import-status" class="help" role="status"></p>
+    </section>
+    <section class="block">
+      <h3>触れ方</h3>
+      <p class="help">上の帯の下なら、左右どちらの半分に触れても、触れた瞬間にその側を選びます。撫でる・押しつける・指を何本も置く、のどれでも選べます。決めるのは最初に触れた位置だけです。</p>
+      <label class="row">真ん中の反応しない幅<select id="pref-dead"><option value="none">なし（標準）</option><option value="narrow">細い</option><option value="wide">広い</option></select></label>
+      <p class="help">真ん中あたりに手が置かれやすいときに使います。幅の中に触れても選びません。</p>
+      <label class="row">選んだ後に、また触れたとき<select id="pref-after"><option value="none">何もしない（標準）</option><option value="repeat">選んだ言葉をもう一度読む</option></select></label>
+    </section>
+    <section class="block">
+      <h3>表示と音声</h3>
+      <label class="check"><input id="pref-labels" type="checkbox">絵の下に言葉を表示する</label>
+      <label class="check"><input id="pref-awake" type="checkbox">使っている間は、画面を自動で暗くしない</label>
+      <label class="row">読む速さ <output id="rate-value"></output><input id="pref-rate" type="range" min="0.5" max="1.3" step="0.1"></label>
+      <div class="buttons"><button id="test-voice" type="button">「こんにちは」で試す</button><button id="stop-voice" type="button">音声を止める</button></div>
+    </section>
+    <section class="block">
+      <h3>iPadの設定（おすすめ）</h3>
+      <p class="help" data-for="app">アプリの中では、拡大・ページ送り・長押しのメニューを止めています。画面の端からのスワイプ（ホームに戻る・コントロールセンター）は、アプリの中では完全には止められません。必要なときは、iPadの「設定」で次を使ってください。</p>
+      <p class="help" data-for="web">この画面では、拡大・ページ送り・長押しのメニューを止めています。Safariの「共有」→「ホーム画面に追加」で追加して開くと、アドレスの欄が消えて全画面で使えます。画面の端からのスワイプは止められないので、必要なときはiPadの「設定」で次を使ってください。</p>
+      <ul class="help">
+        <li>「アクセシビリティ」→「アクセスガイド」：このアプリから出ないようにできます（使い終わったら、支援者が解除します）。</li>
+        <li>「マルチタスクとジェスチャ」：4本・5本の指でのジェスチャを切ります。</li>
+      </ul>
+    </section>
+    <details class="block">
+      <summary>保存と情報について</summary>
+      <p class="help" data-for="app">セット・写真・設定は、このiPadのこのアプリの中だけに保存します。送信はしません。アプリを削除すると消えるので、大切なセットは「書き出す」で保管してください。書き出したファイルは、元の「えらぶの窓」でも読めます。</p>
+      <p class="help" data-for="web">セット・写真・設定は、この端末のこのブラウザの中だけに保存します。送信はしません。利用の集計もしていません。ブラウザの履歴やWebサイトのデータを消すと消え、ホーム画面に追加したものとSafariで開いたものでも別になります。大切なセットは「書き出す」で保管してください。書き出したファイルは、元の「えらぶの窓」でも読めます。</p>
+      <p class="help">元の「えらぶの窓」の3択・4択の質問は、読み込むときに読み飛ばします（2択の質問だけを使います）。</p>
+      <p class="help">選んだ内容は、ご本人の表情・動き・反応と合わせて確かめてください。見本の絵は生成したイラストで、写真に差し替えられます。GPL-3.0-or-later。</p>
+      <p class="help" id="version-text"></p>
+    </details>
+  </div>
+</div>
+
+<div id="sheet-editor" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="editor-title">
+  <div class="sheet-head"><h2 id="editor-title">セットを編集</h2><div class="buttons"><button id="cancel-edit" type="button">やめる</button><button id="save-edit" class="primary" type="button">保存して使う</button></div></div>
+  <div class="sheet-body">
+    <section class="block">
+      <label class="row">セット名<input id="edit-name" type="text" maxlength="50" autocomplete="off"></label>
+      <div class="question-tabs" id="question-tabs"></div>
+      <div class="buttons"><button id="add-question" type="button">＋ 質問を追加</button><button id="move-up" type="button">前へ移す</button><button id="move-down" type="button">後ろへ移す</button><button id="delete-question" type="button">この質問を削除</button></div>
+    </section>
+    <section class="block">
+      <label class="row">問いかけ<input id="edit-question" type="text" maxlength="80" autocomplete="off"></label>
+      <div class="option-editors">
+        <div class="option-editor" data-index="0"><h3>左</h3></div>
+        <div class="option-editor" data-index="1"><h3>右</h3></div>
+      </div>
+    </section>
+    <p id="editor-error" class="error" role="alert"></p>
+    <section class="block">
+      <div class="buttons"><button id="export-set" type="button">このセットを書き出す</button><button id="delete-set" class="danger" type="button">このセットを削除</button></div>
+      <p class="help">1つのセットに質問は50まで。書き出したファイルには写真と言葉が入ります。</p>
+    </section>
+  </div>
+</div>
+
+<template id="option-template">
+  <label class="row">言葉<input class="opt-label" type="text" maxlength="40" autocomplete="off"></label>
+  <label class="row">読み上げる文（空なら言葉を読みます）<input class="opt-speech" type="text" maxlength="200" autocomplete="off"></label>
+  <div class="opt-preview"><div class="picture"></div></div>
+  <div class="builtin-grid"></div>
+  <label class="file-button">写真を選ぶ<input class="opt-photo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+</template>
+
+<div id="startup" class="startup"><p id="startup-text">準備しています…</p><button id="startup-retry" type="button" hidden>読み込み直す</button></div>
+<div id="ripple-layer" class="ripple-layer" aria-hidden="true"></div>
+<script>window.SAWARU_ATLAS="@ATLAS@";window.SAWARU_VERSION="@VERSION@";</script>
+<!--@SCRIPTS@-->
+</body>
+</html>
