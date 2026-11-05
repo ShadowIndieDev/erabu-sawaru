@@ -540,7 +540,8 @@ body.web [data-for="app"],body:not(.web) [data-for="web"]{display:none}
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const atlasUrl = URL.createObjectURL(new Blob([bytes], {type: 'image/png'}));
     const img = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => reject(new Error('見本の絵を読めませんでした')); im.src = atlasUrl; });
-    const cw = img.naturalWidth / 4, ch = img.naturalHeight / 2, size = Math.round(Math.min(cw, ch));
+    // 生成した絵は、となりのマスに少しはみ出していることがあるので、各マスの内側だけを使う。
+    const cw = img.naturalWidth / 4, ch = img.naturalHeight / 2, inset = Math.min(cw, ch) * 0.08, size = Math.round(Math.min(cw, ch) - inset * 2);
     for (const a of L.ASSETS) {
       const c = document.createElement('canvas'); c.width = c.height = size;
       const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, size, size);
