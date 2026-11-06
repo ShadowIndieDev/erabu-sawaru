@@ -233,7 +233,9 @@
     });
   });
   async function shrinkPhoto(file) {
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error('写真はJPG・PNG・WebPを選んでください。');
+    const head = new Uint8Array(await file.slice(0, 6).arrayBuffer());
+    if (String.fromCharCode(...head) === 'GIF87a' || String.fromCharCode(...head) === 'GIF89a') return keepGif(file);
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error('写真はJPG・PNG・WebP・GIFを選んでください。');
     if (file.size > 15 * 1024 * 1024) throw new Error('写真は1枚15MBまでです。');
     const url = URL.createObjectURL(file);
     try {
@@ -247,6 +249,19 @@
       }
       throw new Error('写真が大きすぎます。別の写真を選んでください。');
     } finally { URL.revokeObjectURL(url); }
+  }
+  // GIFは縮めると動きが消えるので、手を加えずにそのまま保存する。
+  async function keepGif(file) {
+    if (file.size > L.LIMITS.gifBytes) throw new Error('GIFは1枚5MBまでです。もっと小さいGIFを選んでください。');
+    const data = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).replace(/^data:[^;,]*;base64,/, 'data:image/gif;base64,'));
+      r.onerror = () => reject(new Error('GIFを読み取れませんでした。'));
+      r.readAsDataURL(file);
+    });
+    await new Promise((resolve, reject) => { const im = new Image(); im.onload = resolve; im.onerror = () => reject(new Error('GIFを読み取れませんでした。')); im.src = data; });
+    if (data.length > L.LIMITS.gifChars) throw new Error('GIFは1枚5MBまでです。もっと小さいGIFを選んでください。');
+    return data;
   }
   function openEditor(set, isNew) {
     draft = JSON.parse(JSON.stringify(set)); draftIsNew = isNew; draftDirty = isNew;

@@ -98,6 +98,19 @@ test('写真は data:image だけを受け付ける', () => {
   assert.throws(() => L.validImage({kind: 'photo', data: 'data:image/svg+xml;base64,AAAA'}));
 });
 
+test('GIFはそのまま受け付け、上限は別', () => {
+  const gif = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+  assert.deepEqual(L.validImage({kind: 'photo', data: gif}), {kind: 'photo', data: gif});
+  const big = 'data:image/gif;base64,R0lGODlh' + 'A'.repeat(3000000);
+  assert.equal(L.validImage({kind: 'photo', data: big}).data, big);
+  assert.throws(() => L.validImage({kind: 'photo', data: 'data:image/gif;base64,R0lGODlh' + 'A'.repeat(L.LIMITS.gifChars)}));
+  assert.throws(() => L.validImage({kind: 'photo', data: 'data:image/gif;base64,AAAA'}));
+  assert.throws(() => L.validImage({kind: 'photo', data: 'data:image/jpeg;base64,' + 'A'.repeat(3000000)}));
+  const set = L.starterSets()[0]; set.questions[0].options[0].image = {kind: 'photo', data: gif};
+  const back = L.importSets(L.exportSet(set)).sets[0];
+  assert.equal(back.questions[0].options[0].image.data, gif);
+});
+
 test('設定は決まった値だけを残す', () => {
   const p = L.sanitizePrefs({deadZone: 'huge', afterTouch: 'repeat', labels: false, rate: 9, keepAwake: false, setId: 's1'});
   assert.equal(p.deadZone, 'none');

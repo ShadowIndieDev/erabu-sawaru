@@ -12,7 +12,7 @@
     {id: 'rabbit', label: 'うさぎ', col: 2, row: 1}, {id: 'elephant', label: 'ぞう', col: 3, row: 1}
   ];
   const LIMITS = {setName: 50, question: 80, label: 40, speech: 200, questions: 50, sets: 50,
-    fileBytes: 50 * 1024 * 1024, photoChars: 2200000, id: 100};
+    fileBytes: 50 * 1024 * 1024, photoChars: 2200000, gifBytes: 5 * 1024 * 1024, gifChars: 7000000, id: 100};
   // 真ん中の反応しない幅（画面の幅に対する割合）。
   const DEAD_ZONES = {none: 0, narrow: 0.08, wide: 0.16};
   const DEFAULT_PREFS = {deadZone: 'none', afterTouch: 'none', labels: true, rate: 0.9, keepAwake: true};
@@ -34,6 +34,9 @@
     if (image && image.kind === 'builtin' && ASSETS.some(a => a.id === image.id)) return {kind: 'builtin', id: image.id};
     if (image && image.kind === 'photo' && typeof image.data === 'string' && image.data.length <= LIMITS.photoChars &&
         /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(image.data)) return {kind: 'photo', data: image.data};
+    // GIF：動きを残すため縮めずにそのまま保存するので、上限を別に持つ。
+    if (image && image.kind === 'photo' && typeof image.data === 'string' && image.data.length <= LIMITS.gifChars &&
+        /^data:image\/gif;base64,R0lGOD[A-Za-z0-9+/]+=*$/.test(image.data)) return {kind: 'photo', data: image.data};
     throw fail('左右それぞれに、見本の絵か写真を設定してください。');
   }
   const SIDE_NAME = ['左', '右'];

@@ -114,6 +114,7 @@
     <section class="block">
       <div class="buttons"><button id="export-set" type="button">このセットを書き出す</button><button id="delete-set" class="danger" type="button">このセットを削除</button></div>
       <p class="help">1つのセットに質問は50まで。書き出したファイルには写真と言葉が入ります。</p>
+      <p class="help">写真はJPG・PNG・WebP・GIF。動くGIFは動いたまま表示します（1枚5MBまで、縮めずに保存）。点滅の激しいGIFは避けてください。GIFの絵は、元の「えらぶの窓」では読めません。</p>
     </section>
   </div>
 </div>
@@ -123,7 +124,7 @@
   <label class="row">読み上げる文（空なら言葉を読みます）<input class="opt-speech" type="text" maxlength="200" autocomplete="off"></label>
   <div class="opt-preview"><div class="picture"></div></div>
   <div class="builtin-grid"></div>
-  <label class="file-button">写真を選ぶ<input class="opt-photo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+  <label class="file-button">写真を選ぶ<input class="opt-photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif,.gif"></label>
 </template>
 
 <div id="startup" class="startup"><p id="startup-text">準備しています…</p><button id="startup-retry" type="button" hidden>読み込み直す</button></div>
